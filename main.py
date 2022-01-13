@@ -3,6 +3,7 @@ import os
 import sys
 
 
+# загрузка изображений
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
@@ -12,23 +13,56 @@ def load_image(name, colorkey=None):
     return image
 
 
+# класс для объектов, которые дают монетки
 class BonusObject:
+    def __init__(self, imagename1, imagename2, x, y):
+        self.sprite = load_image(imagename1)
+        self.imagename2 = imagename2
+        self.rect = self.sprite.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+    def update(self, *args):
+        screen.blit(self.sprite, (self.rect.x, self.rect.y))
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
+            self.sprite = load_image(self.imagename2)
+
+
+# класс для объектов, которые помогают пройти уровень
+class MainObject:
     def __init__(self, imagename, x, y):
         self.object = load_image(imagename)
         self.rect = self.object.get_rect()
         self.rect.x = x
         self.rect.y = y
 
-    def update(self):
+    def update(self, *args):
         screen.blit(self.object, (self.rect.x, self.rect.y))
-
-    def clicked(self, x):
-        if self.rect.right >= x and self.rect.left <= x:
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
             return True
         else:
             return False
 
 
+class InteractiveObject:
+    def __init__(self, imagename, x, y):
+        self.object = load_image(imagename)
+        self.rect = self.object.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
+# class LeverObject:
+#     def __init__(self, imagename, x, y):
+#         self.object = load_image(imagename)
+#         self.rect = self.object.get_rect()
+#         self.rect.x = x
+#         self.rect.y = y
+
+
+# класс аватара игрока
 class Player:
     def __init__(self, x, y):
         self.rect = player_s.get_rect()
@@ -44,7 +78,7 @@ class Player:
         dy = 0
 
         key = pygame.key.get_pressed()
-        if key[pygame.K_UP] and self.jumped == False:
+        if key[pygame.K_UP] and not self.jumped:
             self.jumped = True
             self.v = -15
         else:
@@ -79,7 +113,6 @@ class Player:
         if self.rect.x > 900 and room != 3:
             self.rect.x = 0
             return 1
-
         elif self.rect.x < -50 and room != 1:
             self.rect.x = 800
             return -1
@@ -92,6 +125,7 @@ if __name__ == '__main__':
     pygame.init()
 
     current_room = 1
+    coins = 0
 
     size = width, height = 1080, 720
     screen = pygame.display.set_mode(size)
@@ -105,34 +139,54 @@ if __name__ == '__main__':
     room1 = load_image('room1.png')
     room2 = load_image('room2.png')
     room3 = load_image('room3.png')
+    room4 = load_image('room4.png')
+    room5 = load_image('room5.png')
 
-    # painting1 = BonusObject(painting, 100, 100)
-
+# объекты классов
     player = Player(0, width - 450)
-    painting = BonusObject('painting.png', 65, 135)
+
+    symbol = BonusObject('symbol.png', 'symbol2.png', 100, 100)
+    painting = MainObject('mona_lisa.png', 65, 135)
 
     level_passed = False
+    # level2_passed = False
+    # level3_passed = False
+    # level4_passed = False
+    # level5_passed = False
+    # game_over = False
 
     running = True
     while running:
         if current_room == 1:
             screen.blit(room1, (0, 0))
-            painting.update()
+            symbol.update()
         elif current_room == 2:
             screen.blit(room2, (0, 0))
+            painting.update()
         elif current_room == 3:
             screen.blit(room3, (0, 0))
+        elif current_room == 4:
+            screen.blit(room4, (0, 0))
+        elif current_room == 5:
+            screen.blit(room5, (0, 0))
 
         player.move()
 
         if level_passed:
-            current_room += player.change_room(current_room)
+            a = player.change_room(current_room)
+            current_room += a
+            if a == 1:
+                level_passed = False
+
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                level_passed = painting.clicked(event.pos[0])
+                if current_room == 1:
+                    level_passed = symbol.update(event)
+                elif current_room == 2:
+                    level_passed = painting.update(event)
 
         pygame.display.flip()
     pygame.quit()
