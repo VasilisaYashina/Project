@@ -13,6 +13,32 @@ def load_image(name, colorkey=None):
     return image
 
 
+class Button:
+    def __init__(self, imagename, x, y):
+        self.object = load_image(imagename)
+        self.rect = self.object.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.clicked = False
+
+    def update(self):
+        action = False
+        pos = pygame.mouse.get_pos()
+
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
+                action = True
+                self.clicked = True
+
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+
+        screen.blit(self.object, self.rect)
+
+        print(action)
+        return action
+
+
 # класс для объектов, которые дают монетки
 class BonusObject:
     def __init__(self, imagename1, imagename2, x, y):
@@ -86,12 +112,13 @@ class LeverObject:
                 self.state = [self.object2, self.rect2, self.rect2.x, self.rect2.y]
             elif self.state[0] == self.object2:
                 self.state = [self.object, self.rect, self.rect.x, self.rect.y]
+        self.update()
 
-    def state(self):
+    def lever_state(self):
         if self.state[0] == self.object:
-            return True
-        elif self.state[0] == self.object2:
             return False
+        elif self.state[0] == self.object2:
+            return True
         return False
 
 
@@ -101,27 +128,33 @@ class Player:
         self.rect = player_s.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.ground = 0
         self.v = 0
         self.jumped = False
         self.walking = False
+        self.right = True
+        self.left = False
 
     def move(self):
         # проверка и передвижение героя
         dx = 0
         dy = 0
-
         key = pygame.key.get_pressed()
-        if key[pygame.K_UP] and not self.jumped:
+        if key[pygame.K_UP] and not self.jumped and self.rect.y == self.ground:
+            self.v = -20
             self.jumped = True
-            self.v = -15
         else:
             self.jumped = False
         if key[pygame.K_LEFT]:
-            dx -= 20
+            dx -= 12
             self.walking = True
+            self.right = False
+            self.left = True
         if key[pygame.K_RIGHT]:
-            dx += 20
+            dx += 12
             self.walking = True
+            self.right = True
+            self.left = False
         if not key[pygame.K_RIGHT] and not key[pygame.K_LEFT]:
             self.walking = False
 
@@ -138,9 +171,16 @@ class Player:
             dy = 0
 
         if self.walking:
-            screen.blit(player_w, self.rect)
+            if self.right:
+                screen.blit(player_w, self.rect)
+            elif self.left:
+                screen.blit(player_w_l, self.rect)
         else:
-            screen.blit(player_s, self.rect)
+            if self.right:
+                screen.blit(player_s, self.rect)
+            elif self.left:
+                screen.blit(player_s_l, self.rect)
+
 
     def change_room(self, room):
         if self.rect.x > 900 and room != 5:
@@ -172,7 +212,9 @@ if __name__ == '__main__':
 
     # загрузка изображений
     player_s = load_image('player_standing.png')
+    player_s_l = load_image('player_standing_l.png')
     player_w = load_image('player_walking.png')
+    player_w_l = load_image('player_walking_l.png')
     room1 = load_image('room1.png')
     room2 = load_image('room2.png')
     room3 = load_image('room3.png')
@@ -180,20 +222,23 @@ if __name__ == '__main__':
     room5 = load_image('room5.png')
 
 # объекты классов
+    restart = Button('restart.png', 400, 400)
     player = Player(0, width - 450)
     symbol = MainObject('symbol.png', 100, 100)
     painting = MainObject('mona_lisa.png', 65, 135)
     pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
     lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
-    lever2 = LeverObject('lever_up.png', 'lever_down.png', 100, 200)
-    lever3 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
-    lever4 = LeverObject('lever_up.png', 'lever_down.png', 300, 200)
-    lever5 = LeverObject('lever_up.png', 'lever_down.png', 400, 200)
+    lever2 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
+    lever3 = LeverObject('lever_up.png', 'lever_down.png', 400, 200)
+    lever4 = LeverObject('lever_up.png', 'lever_down.png', 600, 200)
+    lever5 = LeverObject('lever_up.png', 'lever_down.png', 800, 200)
+
 
     level_passed = False
     running = True
 
     while running:
+
         if current_room == 1:
             screen.blit(room1, (0, 0))
             symbol.update()
@@ -207,9 +252,6 @@ if __name__ == '__main__':
             painting.update()
 
         elif current_room == 4:
-            levers = [lever1.press_lever(), lever2.press_lever(), lever3.press_lever(),
-                      lever4.press_lever(), lever5.press_lever()]
-            print(lever1.press_lever())
             screen.blit(room4, (0, 0))
             lever1.update()
             lever2.update()
@@ -221,13 +263,20 @@ if __name__ == '__main__':
             screen.blit(room5, (0, 0))
 
         player.move()
-        # print(player.get_pos())
 
         if level_passed:
             a = player.change_room(current_room)
             current_room += a
             if a == 1:
                 level_passed = False
+
+
+        if restart.update():
+            print('restart')
+            level_passed = False
+            current_room = 1
+            player = Player(0, width - 450)
+
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -243,7 +292,8 @@ if __name__ == '__main__':
                     lever3.press_lever(event)
                     lever4.press_lever(event)
                     lever5.press_lever(event)
-                    print(levers)
+                    levers = [lever1.lever_state(), lever2.lever_state(), lever3.lever_state(),
+                              lever4.lever_state(), lever5.lever_state()]
                     if levers[0] and levers[2] and levers[4] and not levers[1] and not levers[3]:
                         level_passed = True
             if event.type == pygame.KEYDOWN:
