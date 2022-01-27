@@ -15,6 +15,11 @@ def load_image(name, colorkey=None):
     return image
 
 
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
+
+
 # кнопка restart
 class Button:
     def __init__(self, imagename, x, y):
@@ -49,15 +54,22 @@ class BonusObject:
         self.rect = self.sprite.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.scored = False
 
-    def update(self, *args):
-        print(self.rect)
+    def update(self):
         screen.blit(self.sprite, (self.rect.x, self.rect.y))
-        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
-                self.rect.collidepoint(args[0].pos):
-            self.sprite = load_image(self.imagename2)
-            screen.blit(self.sprite, (self.rect.x, self.rect.y))
-            return 1
+
+    def score(self, *args):
+        screen.blit(self.sprite, (self.rect.x, self.rect.y))
+        if not self.scored:
+            if args and args[0].type == pygame.MOUSEBUTTONDOWN and\
+                    self.rect.collidepoint(args[0].pos):
+                self.sprite = load_image(self.imagename2)
+                screen.blit(self.sprite, (self.rect.x, self.rect.y))
+                coin_fx.play()
+                self.scored = True
+                print('returning one')
+                return 1
         return 0
 
 
@@ -183,6 +195,10 @@ class Player:
                 screen.blit(player_w, self.rect)
             elif self.left:
                 screen.blit(player_w_l, self.rect)
+        elif self.rect.y < self.ground and self.right:
+            screen.blit(player_w, self.rect)  # изменить спрайт
+        elif self.rect.y < self.ground and self.left:
+            screen.blit(player_w_l, self.rect)
         else:
             if self.right:
                 screen.blit(player_s, self.rect)
@@ -191,11 +207,11 @@ class Player:
 
     def change_room(self, room):
         if self.rect.x > 900 and room != 5:
-            self.rect.x = 0
+            self.rect.x = -100
             return 1
-        elif self.rect.x < -50 and room != 1:
-            self.rect.x = 800
-            return -1
+        # elif self.rect.x < -50 and room != 1:
+        #     self.rect.x = 800
+        #     return -1
         else:
             return 0
 
@@ -212,10 +228,20 @@ if __name__ == '__main__':
 
     # главные переменные
     start = False
-    current_room = 1
+    current_room = 5
     coins = 0
-    count = 0
+    level_passed = False
+    difficulty = 1
+
+    # переменные для пятой комнаты
+    memory_begin = False
+    is_dark = False
     memory_game = False
+    room_5_time = 0
+    current_time = 0
+    prep = True
+
+    font_score = pygame.font.SysFont('Bauhaus 93', 30)
 
     size = width, height = 1080, 720
     screen = pygame.display.set_mode(size)
@@ -231,7 +257,7 @@ if __name__ == '__main__':
     coin_fx = pygame.mixer.Sound('data/music/coin.mp3')
     coin_fx.set_volume(0.4)
     jump_fx = pygame.mixer.Sound('data/music/jump.mp3')
-    jump_fx.set_volume(0.1)
+    jump_fx.set_volume(0.05)
 
     # загрузка изображений
     player_s = load_image('player_standing.png')
@@ -244,10 +270,11 @@ if __name__ == '__main__':
     room4 = load_image('room4.png')
     room5 = load_image('room5.png')
     dark = load_image('dark.png')
+    coin = load_image('coin.png')
 
 # объекты классов
-    restart = Button('restart.png', 900, 0)
-    player = Player(0, width - 450)
+    restart = Button('restart.png', width - 40, 10)
+    player = Player(0, height - 400)
     symbol = MainObject('symbol.png', 100, 100)
     painting = MainObject('mona_lisa.png', 65, 135)
     pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
@@ -259,9 +286,9 @@ if __name__ == '__main__':
     statue = MainObject('statue.png', 100, 100)
 
 # бонусные объекты
-    bonus_statue = BonusObject('1statue1.png', '1statue2.png', 0, 0)
+    bonus_statue = BonusObject('1statue1.png', '1statue2.png', 532, 399)
+    bonus_vase = BonusObject('1vase1.png', '1vase2.png', 75, 411)
 
-    level_passed = False
     running = True
 
     while running:
@@ -272,8 +299,10 @@ if __name__ == '__main__':
                 screen.blit(room1, (0, 0))
                 symbol.update()
                 bonus_statue.update()
+                bonus_vase.update()
 
             elif current_room == 2:
+                pygame.mixer.music.set_volume(0.01)
                 screen.blit(room2, (0, 0))
                 pressure_plate.update()
 
@@ -290,17 +319,31 @@ if __name__ == '__main__':
                 lever5.update()
 
             elif current_room == 5:
-                screen.blit(room5, (0, 0))
-                if not memory_game:
-                    time.sleep(5)
-                    screen.blit(dark, (0, 0))
-                    time.sleep(3)
+                if prep:
+                    screen.blit(room5, (0, 0))
+                    draw_text('You have', font_score,
+                              (0, 0, 0), width / 2, 10)
+                    current_time = pygame.time.get_ticks()
+                    if not is_dark and not memory_game and not memory_begin:
+                        room_5_time = pygame.time.get_ticks()
+                        memory_begin = True
+                    if current_time - room_5_time > 5000 and memory_begin:
+                        room5 = dark
+                        is_dark = True
+                        memory_begin = False
+                    if is_dark and not memory_game:
+                        room_5_time = pygame.time.get_ticks()
+                        memory_game = True
+                    if current_time - room_5_time > 3000 and memory_game:
+                        room5 = load_image('room5.png')
+                        prep = False
+                else:
                     screen.blit(room5, (0, 0))
                     statue.update()
-                    memory_game = True
-                statue.update()
 
             player.move()
+            screen.blit(coin, (5, 5))
+            draw_text(str(coins), font_score, (255, 255, 0), 34, 10)
 
             if level_passed:
                 a = player.change_room(current_room)
@@ -313,11 +356,15 @@ if __name__ == '__main__':
                 level_passed = False
                 current_room = 1
                 player = Player(0, width - 450)
+                coins = 0
 
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if current_room == 1:
-                        bonus_statue.update(event, event.pos)
+                        print(event.pos)
+                        coins += bonus_statue.score(event, event.pos)
+                        coins += bonus_vase.score(event, event.pos)
+
                         symbol.update(event, event.pos)
                         level_passed = symbol.update(event)
                     elif current_room == 3:
@@ -339,4 +386,5 @@ if __name__ == '__main__':
                 if event.type == pygame.QUIT:
                     running = False
         pygame.display.flip()
+        clock.tick(fps)
     pygame.quit()
