@@ -68,7 +68,6 @@ class BonusObject:
                 screen.blit(self.sprite, (self.rect.x, self.rect.y))
                 coin_fx.play()
                 self.scored = True
-                print('returning one')
                 return 1
         return 0
 
@@ -206,7 +205,7 @@ class Player:
                 screen.blit(player_s_l, self.rect)
 
     def change_room(self, room):
-        if self.rect.x > 900 and room != 5:
+        if self.rect.x > 900 and room != 6:
             self.rect.x = -100
             return 1
         # elif self.rect.x < -50 and room != 1:
@@ -228,10 +227,16 @@ if __name__ == '__main__':
 
     # главные переменные
     start = False
-    current_room = 5
+    current_room = 1
     coins = 0
     level_passed = False
     difficulty = 1
+    count = 10
+    count_2 = 3
+    note_opened = False
+    dif_3_time = 0
+    dif_3_current_time = 0
+    dif_3_count = 5
 
     # переменные для пятой комнаты
     memory_begin = False
@@ -258,6 +263,8 @@ if __name__ == '__main__':
     coin_fx.set_volume(0.4)
     jump_fx = pygame.mixer.Sound('data/music/jump.mp3')
     jump_fx.set_volume(0.05)
+    yay_fx = pygame.mixer.Sound('data/music/yay.mp3')
+    yay_fx.set_volume(0.4)
 
     # загрузка изображений
     player_s = load_image('player_standing.png')
@@ -265,17 +272,21 @@ if __name__ == '__main__':
     player_w = load_image('player_walking.png')
     player_w_l = load_image('player_walking_l.png')
     room1 = load_image('room1.png')
+    room1_note = load_image('room1_note.png')
     room2 = load_image('room2.png')
     room3 = load_image('room3.png')
     room4 = load_image('room4.png')
     room5 = load_image('room5.png')
+    win = load_image('win.png')
+    lose = load_image('lose.png')
     dark = load_image('dark.png')
     coin = load_image('coin.png')
 
 # объекты классов
     restart = Button('restart.png', width - 40, 10)
     player = Player(0, height - 400)
-    symbol = MainObject('symbol.png', 100, 100)
+    note = MainObject('note.png', 898, 648)
+    symbol = MainObject('symbol.png', 358, 86)
     painting = MainObject('mona_lisa.png', 65, 135)
     pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
     lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
@@ -295,14 +306,17 @@ if __name__ == '__main__':
         if start:
             start_menu()
         else:
+            # объекты в каждой комнате
             if current_room == 1:
                 screen.blit(room1, (0, 0))
-                symbol.update()
                 bonus_statue.update()
                 bonus_vase.update()
-
+                if not note_opened:
+                    note.update()
+                else:
+                    screen.blit(room1_note, (0, 0))
+                    symbol.update()
             elif current_room == 2:
-                pygame.mixer.music.set_volume(0.01)
                 screen.blit(room2, (0, 0))
                 pressure_plate.update()
 
@@ -319,35 +333,62 @@ if __name__ == '__main__':
                 lever5.update()
 
             elif current_room == 5:
+                screen.blit(room5, (0, 0))
                 if prep:
-                    screen.blit(room5, (0, 0))
-                    draw_text('You have', font_score,
-                              (0, 0, 0), width / 2, 10)
-                    current_time = pygame.time.get_ticks()
-                    if not is_dark and not memory_game and not memory_begin:
-                        room_5_time = pygame.time.get_ticks()
-                        memory_begin = True
-                    if current_time - room_5_time > 5000 and memory_begin:
+                    if count > 0:
+                        draw_text(f'Запомните комнату! Через {str(count)} секунд выключится свет!',
+                                  font_score, (0, 0, 0), width / 2 - 260, 10)
+                    if count == 0:
                         room5 = dark
-                        is_dark = True
-                        memory_begin = False
-                    if is_dark and not memory_game:
-                        room_5_time = pygame.time.get_ticks()
-                        memory_game = True
-                    if current_time - room_5_time > 3000 and memory_game:
-                        room5 = load_image('room5.png')
+                    if count_2 == 0:
+                        room5 = load_image('room5.png', (0, 0))
                         prep = False
                 else:
-                    screen.blit(room5, (0, 0))
                     statue.update()
 
-            player.move()
+            elif current_room == 6:
+                if difficulty == 1:
+                    screen.blit(win, (0, 0))
+                    restart = Button('restart.png', width / 2, height / 2)
+                elif difficulty == 2:
+                    if coins >= 1:
+                        screen.blit(win, (0, 0))
+                    else:
+                        screen.blit(lose, (0, 0))
+                    restart = Button('restart.png', width / 2, height / 2)
+                if difficulty == 3:
+                    if coins >= 1 and dif_3_count > 0:
+                        screen.blit(win, (0, 0))
+                    else:
+                        screen.blit(lose, (0, 0))
+                    restart = Button('restart.png', width / 2, height / 2)
+
+            # перемещение игрока
+            if current_room != 6 and not note_opened:
+                player.move()
+
+            # монетки
             screen.blit(coin, (5, 5))
             draw_text(str(coins), font_score, (255, 255, 0), 34, 10)
 
+            # таймер для сложной сложности
+            if difficulty == 3:
+                dif_3_current_time = pygame.time.get_ticks()
+                if dif_3_current_time - dif_3_time > 1000 and dif_3_count > 0:
+                    dif_3_count -= 1
+                    dif_3_time = pygame.time.get_ticks()
+                if current_room != 6:
+                    draw_text(str(dif_3_count), font_score, (255, 255, 0), width - 100, 15)
+                if dif_3_count == 0:
+                    current_room = 6
+
+            # смена уровней
             if level_passed:
                 a = player.change_room(current_room)
                 current_room += a
+                if a == 1 and current_room == 5:
+                    pygame.time.set_timer(pygame.USEREVENT, 1000)
+                    level_passed = False
                 if a == 1:
                     level_passed = False
 
@@ -364,11 +405,17 @@ if __name__ == '__main__':
                         print(event.pos)
                         coins += bonus_statue.score(event, event.pos)
                         coins += bonus_vase.score(event, event.pos)
-
-                        symbol.update(event, event.pos)
-                        level_passed = symbol.update(event)
+                        if not note_opened:
+                            note_opened = note.update(event, event.pos)
+                        else:
+                            if symbol.update(event):
+                                level_passed = True
+                                yay_fx.play()
+                                note_opened = False
                     elif current_room == 3:
                         level_passed = painting.update(event)
+                        if level_passed:
+                            yay_fx.play()
                     elif current_room == 4:
                         lever1.press_lever(event)
                         lever2.press_lever(event)
@@ -379,9 +426,23 @@ if __name__ == '__main__':
                                   lever4.lever_state(), lever5.lever_state()]
                         if levers[0] and levers[2] and levers[3] and not levers[1] and not levers[4]:
                             level_passed = True
+                            yay_fx.play()
+                    elif current_room == 5:
+                        if not prep:
+                            level_passed = statue.update(event)
+                            if level_passed:
+                                yay_fx.play()
                 if event.type == pygame.KEYDOWN:
                     if current_room == 2 and pygame.key.get_pressed()[pygame.K_SPACE]:
                         level_passed = pressure_plate.interact(player.get_pos())
+                        if level_passed:
+                            yay_fx.play()
+
+                if event.type == pygame.USEREVENT:
+                    if count > 0:
+                        count -= 1
+                    if count == 0 and count_2 > 0:
+                        count_2 -= 1
 
                 if event.type == pygame.QUIT:
                     running = False
