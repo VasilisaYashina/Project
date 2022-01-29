@@ -55,7 +55,6 @@ def main_menu(click):
         if button_2.collidepoint((mx, my)):
             if click:
                 difficulty, volume = options(False)
-                print(volume)
         if button_3.collidepoint((mx, my)):
             if click:
                 rules()
@@ -97,23 +96,15 @@ def game(difficulty, volume):
     count_2 = 3
     note_opened = False
     dif_3_time = 0
-    # dif_3_current_time = 0
-    dif_3_count = 10
-
-    # # переменные для пятой комнаты
-    # memory_begin = False
-    # is_dark = False
-    # memory_game = False
-    # room_5_time = 0
-    # current_time = 0
+    dif_3_count = 120
     prep = True
+    score_added = False
 
     # шрифты
     font_score = pygame.font.SysFont('Bauhaus 93', 30)
 
     # загрузка звуковых файлов
     pygame.mixer.music.load('data/music/music.mp3')
-    print(volume)
     pygame.mixer.music.set_volume(volume)
     pygame.mixer.music.play(-1, 0.0, 5000)
     coin_fx = pygame.mixer.Sound('data/music/coin.mp3')
@@ -218,6 +209,7 @@ def game(difficulty, volume):
 
         def interact(self, *args):
             if args and self.rect.colliderect(args[0]):
+                # print(self.rect, args[0])
                 return True
             else:
                 return False
@@ -334,7 +326,7 @@ def game(difficulty, volume):
     note = MainObject('note.png', 898, 648)
     symbol = MainObject('symbol.png', 358, 86)
     painting = MainObject('mona_lisa.png', 65, 135)
-    pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
+    pressure_plate = InteractiveObject('pressure_plate.png', 700, 666)
     lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
     lever2 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
     lever3 = LeverObject('lever_up.png', 'lever_down.png', 400, 200)
@@ -356,6 +348,8 @@ def game(difficulty, volume):
             # объекты в каждой комнате
             if current_room == 1:
                 screen.blit(room1, (0, 0))
+                draw_text(f'Найдите записку',
+                          font_score, (255, 255, 255), screen, width / 2 - 80, 20)
                 bonus_statue.update()
                 bonus_vase.update()
                 if not note_opened:
@@ -365,14 +359,20 @@ def game(difficulty, volume):
                     symbol.update()
             elif current_room == 2:
                 screen.blit(room2, (0, 0))
+                draw_text(f'Наступите на правильную плиту и нажмите на пробел',
+                          font_score, (0, 0, 0), screen, width / 2 - 243, 20)
                 pressure_plate.update()
 
             elif current_room == 3:
                 screen.blit(room3, (0, 0))
+                draw_text(f'Найдите картину Леонардо да Винчи',
+                          font_score, (0, 0, 0), screen, width / 2 - 167, 20)
                 painting.update()
 
             elif current_room == 4:
                 screen.blit(room4, (0, 0))
+                draw_text(f'Опустите рычаги 1, 3 и 4',
+                          font_score, (0, 0, 0), screen, width / 2 - 110, 20)
                 lever1.update()
                 lever2.update()
                 lever3.update()
@@ -392,23 +392,46 @@ def game(difficulty, volume):
                         prep = False
                 else:
                     statue.update()
+                    draw_text(f'Найдите отличие',
+                              font_score, (0, 0, 0), screen, width / 2 - 95, 20)
 
             elif current_room == 6:
                 if difficulty == 1:
                     screen.blit(win, (0, 0))
-                    restart = Button('restart.png', width / 2, height / 2)
+                    restart = Button('restart.png', width // 2, height // 2 - 100)
+                    draw_text(f'Счет: {200 + coins * 50}', font, (255, 255, 0), screen,
+                              width // 2 - 30, height // 2 - 40)
+                    if not score_added:
+                        f = open("records.txt", 'a')
+                        print(str(200 + coins * 50), file=f)
+                        f.close()
+                    score_added = True
                 elif difficulty == 2:
-                    if coins >= 1:
+                    if coins >= 2:
                         screen.blit(win, (0, 0))
+                        draw_text(f'Счет: {400 + coins * 50}', font, (255, 255, 0), screen,
+                                  width // 2 - 30, height // 2 - 40)
+                        if not score_added:
+                            f = open("records.txt", 'a')
+                            print(str(400 + coins * 50), file=f)
+                            f.close()
+                        score_added = True
                     else:
                         screen.blit(lose, (0, 0))
-                    restart = Button('restart.png', width / 2, height / 2)
+                    restart = Button('restart.png', width / 2, height / 2 - 100)
                 if difficulty == 3:
                     if coins >= 1 and dif_3_count > 0:
                         screen.blit(win, (0, 0))
+                        draw_text(f'Счет: {600 + coins * 50}', font, (255, 255, 0), screen,
+                                  width // 2 - 30, height // 2 - 40)
+                        if not score_added:
+                            f = open("records.txt", 'a')
+                            print(str(600 + coins * 50), file=f)
+                            f.close()
+                        score_added = True
                     else:
                         screen.blit(lose, (0, 0))
-                    restart = Button('restart.png', width / 2, height / 2)
+                    restart = Button('restart.png', width / 2, height / 2 - 100)
 
             # перемещение игрока
             if current_room != 6 and not note_opened:
@@ -441,15 +464,37 @@ def game(difficulty, volume):
 
             # restart уровня
             if restart.update():
-                level_passed = False
                 current_room = 1
-                player = Player(0, width - 450)
+                score_added = False
                 coins = 0
+                level_passed = False
+                count = 10
+                count_2 = 3
+                note_opened = False
+                dif_3_time = 0
+                dif_3_count = 120
+                prep = True
+                player = Player(0, height - 400)
+                restart = Button('restart.png', width - 40, 10)
+                note = MainObject('note.png', 898, 648)
+                symbol = MainObject('symbol.png', 358, 86)
+                painting = MainObject('mona_lisa.png', 65, 135)
+                pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
+                lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
+                lever2 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
+                lever3 = LeverObject('lever_up.png', 'lever_down.png', 400, 200)
+                lever4 = LeverObject('lever_up.png', 'lever_down.png', 600, 200)
+                lever5 = LeverObject('lever_up.png', 'lever_down.png', 800, 200)
+                statue = MainObject('statue.png', 100, 100)
+
+                # бонусные объекты
+                bonus_statue = BonusObject('1statue1.png', '1statue2.png', 532, 399)
+                bonus_vase = BonusObject('1vase1.png', '1vase2.png', 75, 411)
 
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if current_room == 1:
-                        print(event.pos)
+                        # print(event.pos)
                         coins += bonus_statue.score(event, event.pos)
                         coins += bonus_vase.score(event, event.pos)
                         if not note_opened:
@@ -480,15 +525,16 @@ def game(difficulty, volume):
                             if level_passed:
                                 yay_fx.play()
                 if event.type == pygame.KEYDOWN:
-                    if current_room == 2 and pygame.key.get_pressed()[pygame.K_SPACE]:
+                    if current_room == 2 and event.key == pygame.K_SPACE:
                         level_passed = pressure_plate.interact(player.get_pos())
                         if level_passed:
                             yay_fx.play()
                 if event.type == pygame.USEREVENT:
-                    if count > 0:
-                        count -= 1
-                    if count == 0 and count_2 > 0:
-                        count_2 -= 1
+                    if current_room == 5:
+                        if count > 0:
+                            count -= 1
+                        if count == 0 and count_2 > 0:
+                            count_2 -= 1
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == KEYDOWN:
