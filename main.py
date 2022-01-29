@@ -252,7 +252,7 @@ def game(difficulty, volume):
             self.rect = player_s.get_rect()
             self.rect.x = x
             self.rect.y = y
-            self.ground = 0
+            self.ground = 1
             self.v = 0
             self.jumped = False
             self.walking = False
@@ -264,6 +264,7 @@ def game(difficulty, volume):
             dx = 0
             dy = 0
             key = pygame.key.get_pressed()
+            # print(self.rect.y)
             if key[pygame.K_UP] and not self.jumped and self.rect.y == self.ground:
                 jump_fx.play()
                 self.v = -20
@@ -325,7 +326,7 @@ def game(difficulty, volume):
     player = Player(0, height - 400)
     note = MainObject('note.png', 898, 648)
     symbol = MainObject('symbol.png', 358, 86)
-    painting = MainObject('mona_lisa.png', 65, 135)
+    painting = MainObject('painting.png', 60, 350)
     pressure_plate = InteractiveObject('pressure_plate.png', 700, 666)
     lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
     lever2 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
@@ -337,6 +338,15 @@ def game(difficulty, volume):
     # бонусные объекты
     bonus_statue = BonusObject('1statue1.png', '1statue2.png', 532, 399)
     bonus_vase = BonusObject('1vase1.png', '1vase2.png', 75, 411)
+    bonus_painting = BonusObject('1painting1.png', '1painting2.png', 257, 355)
+
+    bonus_bench = BonusObject('2bench1.png', '2bench2.png', 690, 480)
+    bonus_plant = BonusObject('2plant1.png', '2plant2.png', 810, 410)
+    bonus_trapdoor = BonusObject('2trapdoor1.png', '2trapdoor2.png', 103, 133)
+
+    bonus_carpet = BonusObject('3carpet1.png', '3carpet2.png', 220, 584)
+    bonus_bignote = BonusObject('3bignote1.png', '3bignote2.png', 50, 523)
+    bonus_littlenote = BonusObject('3littlenote1.png', '3littlenote2.png', 682, 485)
 
     running = True
 
@@ -352,6 +362,7 @@ def game(difficulty, volume):
                           font_score, (255, 255, 255), screen, width / 2 - 80, 20)
                 bonus_statue.update()
                 bonus_vase.update()
+                bonus_painting.update()
                 if not note_opened:
                     note.update()
                 else:
@@ -361,12 +372,18 @@ def game(difficulty, volume):
                 screen.blit(room2, (0, 0))
                 draw_text(f'Наступите на правильную плиту и нажмите на пробел',
                           font_score, (0, 0, 0), screen, width / 2 - 243, 20)
+                bonus_bench.update()
+                bonus_plant.update()
+                bonus_trapdoor.update()
                 pressure_plate.update()
 
             elif current_room == 3:
                 screen.blit(room3, (0, 0))
-                draw_text(f'Найдите картину Леонардо да Винчи',
-                          font_score, (0, 0, 0), screen, width / 2 - 167, 20)
+                draw_text(f'Какая картина написана ван Гогом?',
+                          font_score, (255, 255, 255), screen, width / 2 - 172, 20)
+                bonus_carpet.update()
+                bonus_bignote.update()
+                bonus_littlenote.update()
                 painting.update()
 
             elif current_room == 4:
@@ -478,8 +495,8 @@ def game(difficulty, volume):
                 restart = Button('restart.png', width - 40, 10)
                 note = MainObject('note.png', 898, 648)
                 symbol = MainObject('symbol.png', 358, 86)
-                painting = MainObject('mona_lisa.png', 65, 135)
-                pressure_plate = InteractiveObject('pressure_plate.png', 500, 500)
+                painting = MainObject('painting.png', 65, 135)
+                pressure_plate = InteractiveObject('pressure_plate.png', 700, 666)
                 lever1 = LeverObject('lever_up.png', 'lever_down.png', 0, 200)
                 lever2 = LeverObject('lever_up.png', 'lever_down.png', 200, 200)
                 lever3 = LeverObject('lever_up.png', 'lever_down.png', 400, 200)
@@ -490,6 +507,13 @@ def game(difficulty, volume):
                 # бонусные объекты
                 bonus_statue = BonusObject('1statue1.png', '1statue2.png', 532, 399)
                 bonus_vase = BonusObject('1vase1.png', '1vase2.png', 75, 411)
+                bonus_painting = BonusObject('1painting1.png', '1painting2.png', 257, 355)
+                bonus_bench = BonusObject('2bench1.png', '2bench2.png', 690, 480)
+                bonus_plant = BonusObject('2plant1.png', '2plant2.png', 810, 410)
+                bonus_trapdoor = BonusObject('2trapdoor1.png', '2trapdoor2.png', 103, 133)
+                bonus_carpet = BonusObject('3carpet1.png', '3carpet2.png', 220, 584)
+                bonus_bignote = BonusObject('3bignote1.png', '3bignote2.png', 50, 523)
+                bonus_littlenote = BonusObject('3littlenote1.png', '3littlenote2.png', 682, 485)
 
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -497,6 +521,7 @@ def game(difficulty, volume):
                         # print(event.pos)
                         coins += bonus_statue.score(event, event.pos)
                         coins += bonus_vase.score(event, event.pos)
+                        coins += bonus_painting.score(event, event.pos)
                         if not note_opened:
                             note_opened = note.update(event, event.pos)
                         else:
@@ -505,6 +530,9 @@ def game(difficulty, volume):
                                 yay_fx.play()
                                 note_opened = False
                     elif current_room == 3:
+                        coins += bonus_carpet.score(event, event.pos)
+                        coins += bonus_bignote.score(event, event.pos)
+                        coins += bonus_littlenote.score(event, event.pos)
                         level_passed = painting.update(event)
                         if level_passed:
                             yay_fx.play()
@@ -524,6 +552,10 @@ def game(difficulty, volume):
                             level_passed = statue.update(event)
                             if level_passed:
                                 yay_fx.play()
+                    elif current_room == 2:
+                        coins += bonus_bench.score(event, event.pos)
+                        coins += bonus_plant.score(event, event.pos)
+                        coins += bonus_trapdoor.score(event, event.pos)
                 if event.type == pygame.KEYDOWN:
                     if current_room == 2 and event.key == pygame.K_SPACE:
                         level_passed = pressure_plate.interact(player.get_pos())
@@ -595,7 +627,7 @@ def options(options_click):
         draw_text('- Пройдите 5', font, (255, 255, 255), screen, 200, 230)
         draw_text('комнат', font, (255, 255, 255), screen, 200, 255)
         pygame.draw.rect(screen, blue, button_2)
-        draw_text('Сердний', font, (255, 255, 255), screen, width // 2 - 65, 185)
+        draw_text('Средний', font, (255, 255, 255), screen, width // 2 - 65, 185)
         draw_text('- Пройдите 5', font, (255, 255, 255), screen, width // 2 - 120, 230)
         draw_text('комнат и соберите', font, (255, 255, 255), screen, width // 2 - 120, 255)
         draw_text('15 монет', font, (255, 255, 255), screen, width // 2 - 120, 280)
